@@ -1,14 +1,13 @@
 bl_info = {
     "name":         "Minecraft cube-exporter",
     "author":       "Flo",
-    "blender":      (2,69,0),
-    "version":      (0,0,1),
+    "blender":      (2,77,0),
+    "version":      (2,0,0),
     "location":     "File > Import-Export",
-    "description":  "Export mesh in Minecraft cube format",
+    "description":  "Export mesh in Minecraft cube format.",
     "category":     "Import-Export"
 }
 
-import os
 import bpy
 
 from MinecraftExporter.Exporter import MinecraftCubeModelExporter

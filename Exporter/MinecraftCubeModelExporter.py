@@ -4,7 +4,7 @@ from bpy_extras.io_utils import ExportHelper
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
 
-from MinecraftExporter.Exporter import function
+from MCExport.Exporter import function
 
 class MinecraftCubeModelExporter(Operator, ExportHelper):
     """Export the mesh in Minecraft cube format"""

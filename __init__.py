@@ -10,8 +10,8 @@ bl_info = {
 
 import bpy
 
-from MinecraftExporter.Exporter import MinecraftCubeModelExporter
-from MinecraftExporter.Toolmenu import Menu
+from MCExport.Exporter import MinecraftCubeModelExporter
+from MCExport.Toolmenu import Menu
 
 def register():
     bpy.utils.register_class(Menu.OBJECT_OT_unwrapButton)

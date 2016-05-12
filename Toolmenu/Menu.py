@@ -2,7 +2,7 @@ import bpy
 import bmesh
 from bpy.props import FloatProperty, BoolProperty, FloatVectorProperty, BoolVectorProperty
 
-from MinecraftExporter.Toolmenu import function
+from MCExport.Toolmenu import function
 
 class ToolsPanel(bpy.types.Panel):
     """Menu in tools region.

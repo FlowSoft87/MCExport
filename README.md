@@ -7,5 +7,10 @@ Then navigate to 'File > User Preferences > Add-ons' and activate the "Minecraft
 2) To get the typical Minecraft look uncheck the option "Mipmaps" in 'File > User Preferences > System'.
 Do not forget to save the changes if you want them to be permanent.
 
-Workflow:
+Usage:
+The addon provides buttons for the following three actions:
+- Add a new box mesh to the model.
+- Set the UV layout of the currently active box model.
+- Export the whole model as a .java class that Minecraft can use directly.
+
 

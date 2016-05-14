@@ -2,15 +2,46 @@ import math
 import bpy
 
 def getRoundedInt(number):
+    """
+    Round up if number > 0.5 and down else.
+    
+    Returns:
+        The number rounded to the nearest integer value.
+    """
+    
     return int(number+0.499)
 
 def getLocation(obj):
+    """
+    Convenience method to grab the location from a bpy_types.Object
+    (mesh or other kind of blender objects).
+    
+    Args:
+        obj: (bpy_types.Object) Blender object.
+    
+    Returns:
+        Three floats representing x, y and z coordinate of the
+        object (in this order).
+    """
+    
     lx = obj.location[0]
     ly = obj.location[1]
     lz = obj.location[2]
     return lx, ly, lz
 
 def getRotation(obj):
+    """
+    Convenience method to extract the rotation around x, y
+    and z axes. Important: order matters since rotations do
+    not commute!
+    
+    Args:
+        obj: (bpy_types.Object) Blender object.
+    
+    Returns:
+        Three floats representing the rotations around x, y and z axes.
+    """
+    
     rx = obj.rotation_euler[0]#*(180./math.pi)
     ry = obj.rotation_euler[1]#*(180./math.pi)
     rz = obj.rotation_euler[2]#*(180./math.pi)
@@ -18,18 +49,53 @@ def getRotation(obj):
     return rx, ry, rz, rmode
 
 def getScale(obj):
+    """
+    Convenience method to extract the scale of an object in x, y
+    and z directions.
+    
+    Args:
+        obj: (bpy_types.Object) Blender object.
+    
+    Returns:
+        Three floats representing the scale in x, y and z directions.
+    """
+    
     sx = obj.scale[0]
     sy = obj.scale[1]
     sz = obj.scale[2]
     return sx, sy, sz
 
 def getDimensions(obj):
+    """
+    Convenience method to extract the dimensions of an object in x, y
+    and z directions.
+    For the standard cube model added by this addon it is two times
+    the scale.
+    
+    Args:
+        obj: (bpy_types.Object) Blender object.
+    
+    Returns:
+        Three floats representing the dimensions in x, y and z directions.
+    """
+    
     dx = int(obj.dimensions[0]+0.499)
     dy = int(obj.dimensions[1]+0.499)
     dz = int(obj.dimensions[2]+0.499)
     return dx, dy, dz
 
 def getMinVertex(obj):
+    """
+    Method that finds the minimum vertex in a model.
+    This is the one that has smallest x, y and z values.
+    
+    Args:
+        obj: (bpy_types.Object) Blender mesh-object.
+    
+    Returns:
+        Three floats representing the minimum vertex coordinates.
+    """
+    
     mesh = obj.data
     vertex_list = mesh.vertices
     vx_min = None
@@ -44,11 +110,26 @@ def getMinVertex(obj):
             vz_min = vert.co.z
     return vx_min, vy_min, vz_min
 
-# Inverts the v position (1-v)!
 def getMinUV(obj):
+    """
+    Find the minimum uv coordinates for a mesh.
+    Minecraft uses this as the texture offset.
+    Note: The v coordinate is projected onto 1-v.
+    
+    Args:
+        obj: (bpy_types.Object) Blender mesh-object.
+
+    Returns:
+        Two floats representing the u and v
+        coordinates with the smallest values
+        for a given mesh or 0,0 if the mesh has no
+        active texture assigned.
+    """
+    
     mesh = obj.data
     u_min = 1.
     v_max = 0.
+    # Check if the active texture is not none.
     if(mesh.uv_layers.active != None):
         for uv in mesh.uv_layers.active.data:
             if(uv.uv[0] < u_min):
@@ -60,12 +141,41 @@ def getMinUV(obj):
         return 0., 0.
 
 def getTextureSize(which):
+    """
+    Get the size of the texture at position <which> in pixels.
+    
+    Returns:
+        Two integers representing the width and height of the texture
+        at position <which> or 0,0 if it does not exist.
+    """
+    
     if(len(bpy.data.images) > which):
         return bpy.data.images[which].size[0], bpy.data.images[which].size[1]
     else:
         return 0, 0
 
 def writeObjects(file):
+    """
+    Write the current mesh to a '.java' file which can be used
+    in Minecraft directly to render the model.
+    Minecraft uses a ModelRenderer object to hold the necessary
+    information to render a mesh consisting of cubes. At construction,
+    the texture offset is provided which is used to determine the
+    uv-coordinates of the mesh in-game.
+    An arbitrary amount of cubes can be added to the ModelRenderer
+    object, however, they are always rotated together as only
+    the ModelRenderer has a rotation point (position of the mesh).
+    Because of that, this function does construct one ModelRenderer
+    object for every cube mesh individually.
+    Minecraft cube objects have the following properties:
+    - Offset of the cube's minimum vertex from the rotation
+      point.
+    - Dimensions of the cube.
+    
+    Args:
+        file: An open stream object.
+    """
+    
     file.write('package net.x.package;\n\n'\
         +'import net.minecraft.client.model.ModelBase;\n'\
         +'import net.minecraft.client.model.ModelRenderer;\n'\
@@ -131,6 +241,14 @@ def writeObjects(file):
             +'}\n')
 
 def writeData(context, filepath):
+    """
+    Write the current mesh to file.
+    
+    Args:
+        context: The current blender context.
+        filepath: String containing the path to the out-file.
+    """
+    
     if(bpy.context.active_object.mode != "OBJECT"):
         bpy.ops.object.mode_set(mode='OBJECT')
     out = open(filepath, "w")

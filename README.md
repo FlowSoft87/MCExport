@@ -25,7 +25,7 @@ You can now simply place an arbitrary number of boxs to build your model.
 Note, that the origin of the box is also the rotation point of your Minecraft model.
 **Forward in the Minecraft world corresponds to the -y direction in the blender world.**
 The uv-layout for a Minecraft box model (in blender space) is the following:  
-
+```
           dx     dx
        +------+------+
        |  T   |  D   |        dy
@@ -35,7 +35,7 @@ The uv-layout for a Minecraft box model (in blender space) is the following:
 |      |      |      |      |
 +------+------+------+------+
    dy     dx     dy     dx
-
+```
 where dx, dy and dz is the box' dimension in x, y and z direction.  
 Having created a texture (or part of it) in a graphics program, you can load it into blender by opening a 'UV/Image Editor' window in blender and load it as the first texture.
 **Note that the texture size has to be at least 256x256 for Minecraft to be able to work with it.**

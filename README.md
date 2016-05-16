@@ -16,7 +16,7 @@ This blender-addon provides buttons for exactly those three actions:
 2. Button to set the UV layout of the active box model to conform to Minecraft.
 3. Export menu entry to export the scene as a .java class that Minecraft can use as a model.
 
-### Build the model
+#### Build the model
 You start out with a blender cube located at the origin.
 Since the vertex order of this object is not always the same you should delete it.
 (In principle the blender box works fine for exporting a model, however, the 'Unwrap' feature does only work smoothly for a fixed order of the vertices.)
@@ -30,6 +30,7 @@ For those familiar with the way Minecraft models work: The origin of the box in 
 An important note on direction: **forward in the Minecraft world corresponds to the -y direction in the blender world.**
 In other words: if you want to create an entity, its front needs to look into -y direction!
 
+#### Add a texture
 Putting a texture on the model goes as follows.
 The first thing to do is draw the texture in a graphics program.
 The uv-layout for a Minecraft box model (in blender space) is  
@@ -56,6 +57,7 @@ By activating the 'Viewport shading > Texture' option you can see the actual tex
 You can tinker with the texture and reload it until the model looks the way you want it.  
 **Even though blender is able to pin more than one texture layers onto a single model, only the first one will be taken into account when exporting the model later!**
 
+#### Export
 When everything looks as desired, navigate to 'File > Export > Minecraft cube-model format' to export the model as a .java file.
 This file can then be put into the source folder of your Minecraft mod.
 (Or you use it for rendering in blender :P)

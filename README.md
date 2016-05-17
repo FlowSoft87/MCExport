@@ -62,6 +62,7 @@ When everything looks as desired, navigate to 'File > Export > Minecraft cube-mo
 This file can then be put into the source folder of your Minecraft mod.
 (Or you use it for rendering in blender :P)
 
-Coming up:  
+## Outlook
+Things to come:  
 - Export the texture layout with lines indicating the position and size of the cubes to make it easier building a texture for your model.
 - Animations: Use the action feature in blender to create named animated sequences to be exported to Minecraft.

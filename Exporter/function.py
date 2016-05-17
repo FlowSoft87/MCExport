@@ -154,6 +154,97 @@ def getTextureSize(which):
     else:
         return 0, 0
 
+def getAnimationFrameRange(animation_name):
+    """
+    Grab the number of frames for the current animation.
+    An animation always starts at frame zero.
+    
+    Returns:
+        Integer value representing the number of frames of the animation.
+    """
+    
+    out_maxframe = 0
+    for action in bpy.data.actions:
+        temp_name = action.name
+        temp_parts = temp_name.split('_')
+        if temp_parts[0] == animation_name:
+            if(int(action.frame_range[1]) > out_maxframe):
+                out_maxframe = int(action.frame_range[1])
+    return out_maxframe
+
+def getAnimationData(obj):
+    """
+    Grab the animation data for translation, rotation and scale.
+    Usage in blender:
+        The general idea is to set the actions initially so blender does
+        display the animation as you want it to be. After that, the
+        'NLA Editor' is used to build tracks out of them with the name
+        of the animation. For starters only one strip per track is permitted.
+        If checking an option 'Export animations' it
+        will always be necessary to construct an animation called 'idle'!
+        RenderModel object will only check for animation and frame in
+        entity if animation is exported.
+    Export:
+        In Minecraft an animation is simply a set of locations, rotations
+        and scales (which are simple OGL operations). Since this is the
+        same for all entities which have the same model, this information
+        should be stored in the RenderModel object. When rendering, the
+        RenderObject asks the entity for which animation it is in (this
+        should be a simple integer) and what frame is the current one
+        (this will be incremented with every tick). The animations will
+        be stored in an array which holds arrays for x, y and z locations,
+        rotations and scales (this makes a total of 9 arrays).
+        The RenderModel object can now simply grab the information about
+        next and current frame by selecting the animation with the
+        animation integer returned by the entity and the frame by
+        the integer for the current frame. In blender, every single
+        frame will correspond to a Minecraft tick and Minecraft will
+        (like blender) interpolate linearly between two frames.
+    
+    Returns:
+        A list object whose index corresponds to the animation index of
+        the model containing a list of nine lists which keep the values
+        of locations, rotations and scales at an index that corresponds
+        to the frame.
+        The nine lists correspond to:
+        0: locX
+        1: locY
+        2: locZ
+        3: rotX
+        4: rotY
+        5: rotZ
+        6: scaX
+        7: scaY
+        8: scaZ.
+        
+        Example:
+            anims[0][1][10] corresponds to the 10-th frame (last index
+            10) of the y-location (middle index 1) of the model in
+            animation zero (first index 0).
+    """
+    
+    anims = obj.animation_data.nla_tracks
+    if anims == None:
+        print "Error: No animation tracks found in object."
+    out_animations = []
+    for anim in anims:
+        out_animations.append([[],[],[],[],[],[],[],[],[]])
+        action = anim.strips[0].action
+        maxframe = int(action.frame_range[1])
+        if(len(action.fcurves) < 9):
+            print "Error: Not all properties (position, rotation, scale) captured!"
+        for frame in range(maxframe):
+            out_animations[-1][0].append(action.fcurves[0].evaluate(frame))
+            out_animations[-1][1].append(action.fcurves[1].evaluate(frame))
+            out_animations[-1][2].append(action.fcurves[2].evaluate(frame))
+            out_animations[-1][3].append(action.fcurves[3].evaluate(frame))
+            out_animations[-1][4].append(action.fcurves[4].evaluate(frame))
+            out_animations[-1][5].append(action.fcurves[5].evaluate(frame))
+            out_animations[-1][6].append(action.fcurves[6].evaluate(frame))
+            out_animations[-1][7].append(action.fcurves[7].evaluate(frame))
+            out_animations[-1][8].append(action.fcurves[8].evaluate(frame))
+    return out_animations
+
 def writeObjects(file):
     """
     Write the current mesh to a '.java' file which can be used

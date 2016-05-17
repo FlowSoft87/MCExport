@@ -225,14 +225,14 @@ def getAnimationData(obj):
     
     anims = obj.animation_data.nla_tracks
     if anims == None:
-        print "Error: No animation tracks found in object."
+        print("Error: No animation tracks found in object.")
     out_animations = []
     for anim in anims:
         out_animations.append([[],[],[],[],[],[],[],[],[]])
         action = anim.strips[0].action
         maxframe = int(action.frame_range[1])
         if(len(action.fcurves) < 9):
-            print "Error: Not all properties (position, rotation, scale) captured!"
+            print("Error: Not all properties (position, rotation, scale) captured!")
         for frame in range(maxframe):
             out_animations[-1][0].append(action.fcurves[0].evaluate(frame))
             out_animations[-1][1].append(action.fcurves[1].evaluate(frame))

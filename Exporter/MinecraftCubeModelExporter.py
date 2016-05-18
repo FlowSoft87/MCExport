@@ -19,8 +19,14 @@ class MinecraftCubeModelExporter(Operator, ExportHelper):
         options={'HIDDEN'},
         )
     
+    export_animations = BoolProperty(
+        name="Export animations",
+        description="Set to export animation data.",
+        default=False,
+    )
+    
     def execute(self, context):
-        return function.writeData(context, self.filepath)#, self.use_setting)
+        return function.writeData(context, self.filepath, self.export_animations)#, self.use_setting)
 
 # Only needed if you want to add into a dynamic menu
 def menu_func_export(self, context):

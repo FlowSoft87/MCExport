@@ -154,25 +154,44 @@ def getTextureSize(which):
     else:
         return 0, 0
 
-def getAnimationFrameRange(animation_name):
+def getAnimationFrameRange(obj_list, animation_name):
     """
     Grab the number of frames for the current animation.
     An animation always starts at frame zero.
     
+    Args:
+        obj_list: List of all objects in the scene.
+                  (Generally: bpy.data.objects)
+        animation_name: Name of the animation.
+    
     Returns:
-        Integer value representing the number of frames of the animation.
+        Integer value representing the number of frames of the
+        animation. If the returned value is zero the animation
+        does not exist.
     """
     
     out_maxframe = 0
-    for action in bpy.data.actions:
-        temp_name = action.name
-        temp_parts = temp_name.split('_')
-        if temp_parts[0] == animation_name:
-            if(int(action.frame_range[1]) > out_maxframe):
-                out_maxframe = int(action.frame_range[1])
+    for obj in obj_list:
+        if obj.type == "MESH":
+            if obj.animation_data == None:
+                print("Warning: Object has no animation data set!")
+                continue
+            if len(obj.animation_data.nla_tracks) == 0:
+                print("Warning: Object has no nla-track set!")
+                continue
+            for anim in obj.animation_data.nla_tracks:
+                if (anim.name == animation_name) and (anim.strips[0].action_frame_end > out_maxframe):
+                    out_maxframe = anim.strips[0].action_frame_end
+                    break
     return out_maxframe
 
-def getAnimationData(obj):
+#def getAnimationMap(obj_list):
+#    """
+#    Construct a map, mapping the names of animations to an index and their
+#    max frame.
+#    """
+
+def getAnimationData(obj, animation_name, max_frame):
     """
     Grab the animation data for translation, rotation and scale.
     Usage in blender:
@@ -201,11 +220,17 @@ def getAnimationData(obj):
         frame will correspond to a Minecraft tick and Minecraft will
         (like blender) interpolate linearly between two frames.
     
+    Args:
+        obj: The object.
+        animation_name: The name of the animation to extract.
+        max_frame: The maximum frame to be extracted. Can be found
+                   by calling above function.
+    
     Returns:
-        A list object whose index corresponds to the animation index of
-        the model containing a list of nine lists which keep the values
+        A list object whose index corresponds to the values
         of locations, rotations and scales at an index that corresponds
-        to the frame.
+        to the frame or None if the object has no animation data or
+        not all three properties are stored.
         The nine lists correspond to:
         0: locX
         1: locY
@@ -218,32 +243,34 @@ def getAnimationData(obj):
         8: scaZ.
         
         Example:
-            anims[0][1][10] corresponds to the 10-th frame (last index
-            10) of the y-location (middle index 1) of the model in
-            animation zero (first index 0).
+            anims[1][10] corresponds to the 10-th frame (last index
+            10) of the y-location (first index 1) of the model.
     """
     
+    if (obj.animation_data == None) or (len(obj.animation_data.nla_tracks < 1)):
+        print("Warning: No animation tracks found in object!")
+        return None
     anims = obj.animation_data.nla_tracks
-    if anims == None:
-        print("Error: No animation tracks found in object.")
-    out_animations = []
+    out_animation = None
     for anim in anims:
-        out_animations.append([[],[],[],[],[],[],[],[],[]])
-        action = anim.strips[0].action
-        maxframe = int(action.frame_range[1])
-        if(len(action.fcurves) < 9):
-            print("Error: Not all properties (position, rotation, scale) captured!")
-        for frame in range(maxframe):
-            out_animations[-1][0].append(action.fcurves[0].evaluate(frame))
-            out_animations[-1][1].append(action.fcurves[1].evaluate(frame))
-            out_animations[-1][2].append(action.fcurves[2].evaluate(frame))
-            out_animations[-1][3].append(action.fcurves[3].evaluate(frame))
-            out_animations[-1][4].append(action.fcurves[4].evaluate(frame))
-            out_animations[-1][5].append(action.fcurves[5].evaluate(frame))
-            out_animations[-1][6].append(action.fcurves[6].evaluate(frame))
-            out_animations[-1][7].append(action.fcurves[7].evaluate(frame))
-            out_animations[-1][8].append(action.fcurves[8].evaluate(frame))
-    return out_animations
+        if(anim.name == animation_name):
+            out_animation = [[],[],[],[],[],[],[],[],[]]
+            action = anim.strips[0].action
+            if(len(action.fcurves) < 9):
+                print("Warning: Not all properties (position, rotation, scale) captured!")
+                return None
+            for frame in range(max_frame):
+                out_animation[0].append(action.fcurves[0].evaluate(frame))
+                out_animation[1].append(action.fcurves[1].evaluate(frame))
+                out_animation[2].append(action.fcurves[2].evaluate(frame))
+                out_animation[3].append(action.fcurves[3].evaluate(frame))
+                out_animation[4].append(action.fcurves[4].evaluate(frame))
+                out_animation[5].append(action.fcurves[5].evaluate(frame))
+                out_animation[6].append(action.fcurves[6].evaluate(frame))
+                out_animation[7].append(action.fcurves[7].evaluate(frame))
+                out_animation[8].append(action.fcurves[8].evaluate(frame))
+            break
+    return out_animation
 
 def writeObjects(file):
     """
@@ -331,13 +358,14 @@ def writeObjects(file):
             +'    }\n'\
             +'}\n')
 
-def writeData(context, filepath):
+def writeData(context, filepath, export_anim):
     """
     Write the current mesh to file.
     
     Args:
         context: The current blender context.
         filepath: String containing the path to the out-file.
+        export_anim: Boolean specifying if animations are to be exported.
     """
     
     if(bpy.context.active_object.mode != "OBJECT"):

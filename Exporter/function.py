@@ -185,11 +185,40 @@ def getAnimationFrameRange(obj_list, animation_name):
                     break
     return out_maxframe
 
-#def getAnimationMap(obj_list):
+#def getObjectMap(obj_list):
 #    """
-#    Construct a map, mapping the names of animations to an index and their
-#    max frame.
+#    Construct a map to assign index to named object.
 #    """
+#
+#    for obj in obj_list:
+#        if obj.type == "MESH":
+#            
+
+def getAnimationMap(obj_list):
+    """
+    Construct a map, mapping the names of animations to an index and their
+    max frame.
+    """
+    
+    out_map = {}
+    cur_index = 0
+    for obj in obj_list:
+        if obj.type == "MESH":
+            if obj.animation_data == None:
+                print("Warning: Object has no animation data set!")
+                continue
+            if len(obj.animation_data.nla_tracks) == 0:
+                print("Warning: Object has no nla-track set!")
+                continue
+            for anim in obj.animation_data.nla_tracks:
+                temp_name = anim.name
+                if not (temp_name in out_map):
+                    temp_max_frame = getAnimationFrameRange(obj_list,temp_name)
+                    out_map[temp_name] = (cur_index,temp_max_frame,[obj.name])
+                    cur_index += 1
+                else:
+                    out_map[temp_name][2].append(obj.name)
+    return out_map
 
 def getAnimationData(obj, animation_name, max_frame):
     """
@@ -229,8 +258,9 @@ def getAnimationData(obj, animation_name, max_frame):
     Returns:
         A list object whose index corresponds to the values
         of locations, rotations and scales at an index that corresponds
-        to the frame or None if the object has no animation data or
-        not all three properties are stored.
+        to the frame or None if the object has no animation data.
+        A char sequence indicating what type of data are stored:
+            'l'-loc, 'lr'-locrot, 'lrs'-locrotscale or 'n' if none.
         The nine lists correspond to:
         0: locX
         1: locY
@@ -252,25 +282,48 @@ def getAnimationData(obj, animation_name, max_frame):
         return None
     anims = obj.animation_data.nla_tracks
     out_animation = None
+    out_type = 'n'
     for anim in anims:
         if(anim.name == animation_name):
-            out_animation = [[],[],[],[],[],[],[],[],[]]
             action = anim.strips[0].action
-            if(len(action.fcurves) < 9):
-                print("Warning: Not all properties (position, rotation, scale) captured!")
+            if(len(action.fcurves) < 3):
+                print("Warning: No properties captured!")
                 return None
-            for frame in range(max_frame):
-                out_animation[0].append(action.fcurves[0].evaluate(frame))
-                out_animation[1].append(action.fcurves[1].evaluate(frame))
-                out_animation[2].append(action.fcurves[2].evaluate(frame))
-                out_animation[3].append(action.fcurves[3].evaluate(frame))
-                out_animation[4].append(action.fcurves[4].evaluate(frame))
-                out_animation[5].append(action.fcurves[5].evaluate(frame))
-                out_animation[6].append(action.fcurves[6].evaluate(frame))
-                out_animation[7].append(action.fcurves[7].evaluate(frame))
-                out_animation[8].append(action.fcurves[8].evaluate(frame))
+            if len(action.fcurves) == 9:
+                # All properties captured.
+                out_animation = [[],[],[],[],[],[],[],[],[]]
+                out_type = 'lrs'
+                for frame in range(max_frame):
+                    out_animation[0].append(action.fcurves[0].evaluate(frame))
+                    out_animation[1].append(action.fcurves[1].evaluate(frame))
+                    out_animation[2].append(action.fcurves[2].evaluate(frame))
+                    out_animation[3].append(action.fcurves[3].evaluate(frame))
+                    out_animation[4].append(action.fcurves[4].evaluate(frame))
+                    out_animation[5].append(action.fcurves[5].evaluate(frame))
+                    out_animation[6].append(action.fcurves[6].evaluate(frame))
+                    out_animation[7].append(action.fcurves[7].evaluate(frame))
+                    out_animation[8].append(action.fcurves[8].evaluate(frame))
+            elif len(action.fcurves) == 6:
+                # Location and rotation.
+                out_animation = [[],[],[],[],[],[]]
+                out_type = 'lr'
+                for frame in range(max_frame):
+                    out_animation[0].append(action.fcurves[0].evaluate(frame))
+                    out_animation[1].append(action.fcurves[1].evaluate(frame))
+                    out_animation[2].append(action.fcurves[2].evaluate(frame))
+                    out_animation[3].append(action.fcurves[3].evaluate(frame))
+                    out_animation[4].append(action.fcurves[4].evaluate(frame))
+                    out_animation[5].append(action.fcurves[5].evaluate(frame))
+            elif len(action.fcurves) == 3:
+                # Location only.
+                out_animation = [[],[],[]]
+                out_type = 'l'
+                for frame in range(max_frame):
+                    out_animation[0].append(action.fcurves[0].evaluate(frame))
+                    out_animation[1].append(action.fcurves[1].evaluate(frame))
+                    out_animation[2].append(action.fcurves[2].evaluate(frame))
             break
-    return out_animation
+    return out_animation, out_type
 
 def writeObjects(file):
     """
@@ -292,9 +345,14 @@ def writeObjects(file):
     
     Args:
         file: An open stream object.
+        animations: Boolean indicating if animations shall also be extracted.
     """
     
-    file.write('package net.x.package;\n\n'\
+    tsu, tsv = getTextureSize(0)
+
+    # Package imports plus class boilerplate.
+    file.write(
+        'package net.x.package;\n\n'\
         +'import net.minecraft.client.model.ModelBase;\n'\
         +'import net.minecraft.client.model.ModelRenderer;\n'\
         +'import net.minecraft.entity.Entity;\n'\
@@ -302,14 +360,13 @@ def writeObjects(file):
         +'import net.minecraftforge.fml.relauncher.SideOnly;\n\n'\
         +'@SideOnly(Side.CLIENT)\n'\
         +'class ModelName extends ModelBase\n'\
-        +'{\n'\
-        +'    private float partialTicks;\n')
+        +'{\n')
+    # Partial ticks need to be saved for later use.
+    file.write('    private float partialTicks;\n')
     
     for obj in bpy.data.objects:
         if(obj.type == "MESH"):
             file.write('    public ModelRenderer '+obj.name+';\n')
-    
-    tsu, tsv = getTextureSize(0)
     
     file.write('\n'\
             +'    public ModelName()\n'\
@@ -332,7 +389,8 @@ def writeObjects(file):
             #file.write('        //  location (MC): '+str(lx)+' '+str(24-lz)+' '+str(ly)+'\n')
             #file.write('        //  local min vertex (MC): '+str(vx_min*sx)+' '+str(-vz_min*sz)+' '+str(vy_min*sy)+'\n')
             #file.write("        //  tex offset (MC): "+str(u_min)+' '+str(v_min)+'\n')
-            file.write('        this.'+obj.name+' = new ModelRenderer(this,'+str(int(u_min*tsu+0.5))+','+str(int(v_min*tsv+0.5))+');\n'\
+            file.write(
+                    '        this.'+obj.name+' = new ModelRenderer(this,'+str(int(u_min*tsu+0.5))+','+str(int(v_min*tsv+0.5))+');\n'\
                     +'        this.'+obj.name+'.addBox('+str.format("{0:.6f}",vx_min*sx)+'f,'+str.format("{0:.6f}",-vz_min*sz)+'f,'+str.format("{0:.6f}",vy_min*sy)+'f,'+str(dx)+','+str(dz)+','+str(dy)+',0f);\n'\
                     +'        this.'+obj.name+'.setRotationPoint('+str.format("{0:.6f}",lx)+'f,'+str.format("{0:.6f}",24.-lz)+'f,'+str.format("{0:.6f}",ly)+'f);\n'\
                     +'        this.'+obj.name+'.rotateAngleX = '+str.format("{0:.6f}",rx)+'f;\n'\
@@ -341,7 +399,8 @@ def writeObjects(file):
 #                    +'        this.'+obj.name+'.setTextureSize('+str(tsu)+','+str(tsv)+');\n'\
                     +'        this.'+obj.name+'.mirror = true;\n')
     
-    file.write('    }\n\n'\
+    file.write(
+            '    }\n\n'\
             +'    public void setLivingAnimations(EntityLivingBase p_78086_1_, float p_78086_2_, float p_78086_3_, float p_78086_4_)\n'\
             +'    {\n'\
             +'        this.partialTicks = p_78086_4_;\n'\
@@ -352,7 +411,114 @@ def writeObjects(file):
     for obj in bpy.data.objects:
         if(obj.type == "MESH"):
             file.write('        this.'+obj.name+'.render(p_78088_7_);\n')
-    file.write('    }\n\n'\
+    file.write(
+            '    }\n\n'\
+            +'    public void setRotationAngles(float p_78087_1_, float p_78087_2_, float p_78087_3_, float p_78087_4_, float p_78087_5_, float p_78087_6_, Entity p_78087_7_)\n'\
+            +'    {\n'\
+            +'    }\n'\
+            +'}\n')
+
+def write_animrenderclass(stream, animation_name, animation_data):
+    """
+    Write the animation to a stream.
+    """
+
+    stream.write(
+        '    class '+str(animation_name)+'AnimationRenderer implements IAnimationRenderer {\n'\
+        +'        '\
+        +'    }')
+
+def writeObjects_anim(file):
+    """
+    Write the current mesh to a '.java' file which can be used
+    in Minecraft directly to render the model.
+    Minecraft uses a ModelRenderer object to hold the necessary
+    information to render a mesh consisting of cubes. At construction,
+    the texture offset is provided which is used to determine the
+    uv-coordinates of the mesh in-game.
+    An arbitrary amount of cubes can be added to the ModelRenderer
+    object, however, they are always rotated together as only
+    the ModelRenderer has a rotation point (position of the mesh).
+    Because of that, this function does construct one ModelRenderer
+    object for every cube mesh individually.
+    Minecraft cube objects have the following properties:
+    - Offset of the cube's minimum vertex from the rotation
+      point.
+    - Dimensions of the cube.
+    
+    Args:
+        file: An open stream object.
+        animations: Boolean indicating if animations shall also be extracted.
+    """
+    
+    tsu, tsv = getTextureSize(0)
+    animap = getAnimationMap(bpy.data.objects)
+    print(animap)
+    
+    # Package imports plus class boilerplate.
+    file.write(
+        'package net.x.package;\n\n'\
+        +'import net.minecraft.client.model.ModelBase;\n'\
+        +'import net.minecraft.client.model.ModelRenderer;\n'\
+        +'import net.minecraft.entity.Entity;\n'\
+        +'import net.minecraftforge.fml.relauncher.Side;\n'\
+        +'import net.minecraftforge.fml.relauncher.SideOnly;\n\n'\
+        +'@SideOnly(Side.CLIENT)\n'\
+        +'class ModelName extends ModelBase\n'\
+        +'{\n')
+    # Animation interface used to render animation frames.
+    file.write(
+        '    private interface IAnimationRenderer {\n'\
+        +'        public void render(Entity entity, float p_78088_2_, float p_78088_3_, float p_78088_4_, float p_78088_5_, float p_78088_6_, float p_78088_7_);\n'\
+        +'    }\n'\
+        +'    \n')
+    # Partial ticks need to be saved for later use.
+    file.write('    private float partialTicks;\n')
+    
+    for obj in bpy.data.objects:
+        if(obj.type == "MESH"):
+            file.write('    public ModelRenderer '+obj.name+';\n')
+    
+    file.write('\n'\
+            +'    public ModelName()\n'\
+            +'    {\n'\
+            +'        this.textureWidth = '+str(tsu)+';\n'\
+            +'        this.textureHeight = '+str(tsv)+';\n')
+    
+    for obj in bpy.data.objects:
+        if(obj.type == "MESH"):
+            lx, ly, lz = getLocation(obj)
+            rx, ry, rz, rmode = getRotation(obj)
+            sx, sy, sz = getScale(obj)
+            dx, dy, dz = getDimensions(obj)
+            vx_min, vy_min, vz_min = getMinVertex(obj)
+            u_min, v_min = getMinUV(obj)
+            
+            file.write(
+                    '        this.'+obj.name+' = new ModelRenderer(this,'+str(int(u_min*tsu+0.5))+','+str(int(v_min*tsv+0.5))+');\n'\
+                    +'        this.'+obj.name+'.addBox('+str.format("{0:.6f}",vx_min*sx)+'f,'+str.format("{0:.6f}",-vz_min*sz)+'f,'+str.format("{0:.6f}",vy_min*sy)+'f,'+str(dx)+','+str(dz)+','+str(dy)+',0f);\n'\
+                    +'        this.'+obj.name+'.setRotationPoint('+str.format("{0:.6f}",lx)+'f,'+str.format("{0:.6f}",24.-lz)+'f,'+str.format("{0:.6f}",ly)+'f);\n'\
+                    +'        this.'+obj.name+'.rotateAngleX = '+str.format("{0:.6f}",rx)+'f;\n'\
+                    +'        this.'+obj.name+'.rotateAngleY = '+str.format("{0:.6f}",-rz)+'f;\n'\
+                    +'        this.'+obj.name+'.rotateAngleZ = '+str.format("{0:.6f}",ry)+'f;\n'\
+#                    +'        this.'+obj.name+'.setTextureSize('+str(tsu)+','+str(tsv)+');\n'\
+                    +'        this.'+obj.name+'.mirror = true;\n')
+    
+    file.write(
+            '    }\n\n'\
+            +'    public void setLivingAnimations(EntityLivingBase entity, float p_78086_2_, float p_78086_3_, float p_78086_4_)\n'\
+            +'    {\n'\
+            +'        this.partialTicks = p_78086_4_;\n'\
+            +'    }\n'\
+            +'    \n'\
+            +'    public void render(Entity entity, float p_78088_2_, float p_78088_3_, float p_78088_4_, float p_78088_5_, float p_78088_6_, float p_78088_7_)\n'\
+            +'    {\n'\
+            +'        this.setRotationAngles(p_78088_2_, p_78088_3_, p_78088_4_, p_78088_5_, p_78088_6_, p_78088_7_, entity);\n')
+    for obj in bpy.data.objects:
+        if(obj.type == "MESH"):
+            file.write('        this.'+obj.name+'.render(p_78088_7_);\n')
+    file.write(
+            '    }\n\n'\
             +'    public void setRotationAngles(float p_78087_1_, float p_78087_2_, float p_78087_3_, float p_78087_4_, float p_78087_5_, float p_78087_6_, Entity p_78087_7_)\n'\
             +'    {\n'\
             +'    }\n'\
@@ -371,7 +537,10 @@ def writeData(context, filepath, export_anim):
     if(bpy.context.active_object.mode != "OBJECT"):
         bpy.ops.object.mode_set(mode='OBJECT')
     out = open(filepath, "w")
-    writeObjects(out)
+    if export_anim:
+        writeObjects_anim(out)
+    else:
+        writeObjects(out)
     out.close()
     
     return {'FINISHED'}

@@ -1,7 +1,8 @@
 import math
 import bpy
 
-def getRoundedInt(number):
+
+def get_rounded_int(number):
     """
     Round up if number > 0.5 and down else.
     
@@ -11,7 +12,8 @@ def getRoundedInt(number):
     
     return int(number+0.499)
 
-def getLocation(obj):
+
+def get_location(obj):
     """
     Convenience method to grab the location from a bpy_types.Object
     (mesh or other kind of blender objects).
@@ -29,7 +31,8 @@ def getLocation(obj):
     lz = obj.location[2]
     return lx, ly, lz
 
-def getRotation(obj):
+
+def get_rotation(obj):
     """
     Convenience method to extract the rotation around x, y
     and z axes. Important: order matters since rotations do
@@ -48,7 +51,8 @@ def getRotation(obj):
     rmode = obj.rotation_mode
     return rx, ry, rz, rmode
 
-def getScale(obj):
+
+def get_scale(obj):
     """
     Convenience method to extract the scale of an object in x, y
     and z directions.
@@ -65,7 +69,8 @@ def getScale(obj):
     sz = obj.scale[2]
     return sx, sy, sz
 
-def getDimensions(obj):
+
+def get_dimensions(obj):
     """
     Convenience method to extract the dimensions of an object in x, y
     and z directions.
@@ -84,7 +89,8 @@ def getDimensions(obj):
     dz = int(obj.dimensions[2]+0.499)
     return dx, dy, dz
 
-def getMinVertex(obj):
+
+def get_min_vertex(obj):
     """
     Method that finds the minimum vertex in a model.
     This is the one that has smallest x, y and z values.
@@ -110,7 +116,8 @@ def getMinVertex(obj):
             vz_min = vert.co.z
     return vx_min, vy_min, vz_min
 
-def getMinUV(obj):
+
+def get_min_uv(obj):
     """
     Find the minimum uv coordinates for a mesh.
     Minecraft uses this as the texture offset.
@@ -140,7 +147,8 @@ def getMinUV(obj):
     else:
         return 0., 0.
 
-def getTextureSize(which):
+
+def get_texture_size(which):
     """
     Get the size of the texture at position <which> in pixels.
     
@@ -149,12 +157,13 @@ def getTextureSize(which):
         at position <which> or 0,0 if it does not exist.
     """
     
-    if(len(bpy.data.images) > which):
+    if len(bpy.data.images) > which:
         return bpy.data.images[which].size[0], bpy.data.images[which].size[1]
     else:
         return 0, 0
 
-def getAnimationFrameRange(obj_list, animation_name):
+
+def get_animation_frame_range(obj_list, animation_name):
     """
     Grab the number of frames for the current animation.
     An animation always starts at frame zero.
@@ -185,6 +194,7 @@ def getAnimationFrameRange(obj_list, animation_name):
                     break
     return out_maxframe
 
+
 #def getObjectMap(obj_list):
 #    """
 #    Construct a map to assign index to named object.
@@ -194,7 +204,8 @@ def getAnimationFrameRange(obj_list, animation_name):
 #        if obj.type == "MESH":
 #            
 
-def getAnimationMap(obj_list):
+
+def get_animation_map(obj_list):
     """
     Construct a map, mapping the names of animations to an index and their
     max frame.
@@ -213,14 +224,15 @@ def getAnimationMap(obj_list):
             for anim in obj.animation_data.nla_tracks:
                 temp_name = anim.name
                 if not (temp_name in out_map):
-                    temp_max_frame = getAnimationFrameRange(obj_list,temp_name)
+                    temp_max_frame = get_animation_frame_range(obj_list, temp_name)
                     out_map[temp_name] = (cur_index,temp_max_frame,[obj.name])
                     cur_index += 1
                 else:
                     out_map[temp_name][2].append(obj.name)
     return out_map
 
-def getAnimationData(obj, animation_name, max_frame):
+
+def get_animation_data(obj, animation_name, max_frame):
     """
     Grab the animation data for translation, rotation and scale.
     Usage in blender:
@@ -325,7 +337,8 @@ def getAnimationData(obj, animation_name, max_frame):
             break
     return out_animation, out_type
 
-def writeObjects(file):
+
+def write_objects(file):
     """
     Write the current mesh to a '.java' file which can be used
     in Minecraft directly to render the model.
@@ -348,7 +361,7 @@ def writeObjects(file):
         animations: Boolean indicating if animations shall also be extracted.
     """
     
-    tsu, tsv = getTextureSize(0)
+    tsu, tsv = get_texture_size(0)
 
     # Package imports plus class boilerplate.
     file.write(
@@ -376,12 +389,12 @@ def writeObjects(file):
     
     for obj in bpy.data.objects:
         if(obj.type == "MESH"):
-            lx, ly, lz = getLocation(obj)
-            rx, ry, rz, rmode = getRotation(obj)
-            sx, sy, sz = getScale(obj)
-            dx, dy, dz = getDimensions(obj)
-            vx_min, vy_min, vz_min = getMinVertex(obj)
-            u_min, v_min = getMinUV(obj)
+            lx, ly, lz = get_location(obj)
+            rx, ry, rz, rmode = get_rotation(obj)
+            sx, sy, sz = get_scale(obj)
+            dx, dy, dz = get_dimensions(obj)
+            vx_min, vy_min, vz_min = get_min_vertex(obj)
+            u_min, v_min = get_min_uv(obj)
             
             #file.write('        // '+obj.name+'\n')
             #file.write('        //  scale (MC): '+str(sx)+' '+str(sz)+' '+str(sy)+'\n')
@@ -418,6 +431,7 @@ def writeObjects(file):
             +'    }\n'\
             +'}\n')
 
+
 def write_animrenderclass(stream, animation_name, animation_data):
     """
     Write the animation to a stream.
@@ -428,7 +442,8 @@ def write_animrenderclass(stream, animation_name, animation_data):
         +'        '\
         +'    }')
 
-def writeObjects_anim(file):
+
+def write_objects_anim(file):
     """
     Write the current mesh to a '.java' file which can be used
     in Minecraft directly to render the model.
@@ -451,8 +466,8 @@ def writeObjects_anim(file):
         animations: Boolean indicating if animations shall also be extracted.
     """
     
-    tsu, tsv = getTextureSize(0)
-    animap = getAnimationMap(bpy.data.objects)
+    tsu, tsv = get_texture_size(0)
+    animap = get_animation_map(bpy.data.objects)
     print(animap)
     
     # Package imports plus class boilerplate.
@@ -487,12 +502,12 @@ def writeObjects_anim(file):
     
     for obj in bpy.data.objects:
         if(obj.type == "MESH"):
-            lx, ly, lz = getLocation(obj)
-            rx, ry, rz, rmode = getRotation(obj)
-            sx, sy, sz = getScale(obj)
-            dx, dy, dz = getDimensions(obj)
-            vx_min, vy_min, vz_min = getMinVertex(obj)
-            u_min, v_min = getMinUV(obj)
+            lx, ly, lz = get_location(obj)
+            rx, ry, rz, rmode = get_rotation(obj)
+            sx, sy, sz = get_scale(obj)
+            dx, dy, dz = get_dimensions(obj)
+            vx_min, vy_min, vz_min = get_min_vertex(obj)
+            u_min, v_min = get_min_uv(obj)
             
             file.write(
                     '        this.'+obj.name+' = new ModelRenderer(this,'+str(int(u_min*tsu+0.5))+','+str(int(v_min*tsv+0.5))+');\n'\
@@ -524,7 +539,8 @@ def writeObjects_anim(file):
             +'    }\n'\
             +'}\n')
 
-def writeData(context, filepath, export_anim):
+
+def write_data(context, filepath, export_anim):
     """
     Write the current mesh to file.
     
@@ -538,9 +554,9 @@ def writeData(context, filepath, export_anim):
         bpy.ops.object.mode_set(mode='OBJECT')
     out = open(filepath, "w")
     if export_anim:
-        writeObjects_anim(out)
+        write_objects_anim(out)
     else:
-        writeObjects(out)
+        write_objects(out)
     out.close()
     
     return {'FINISHED'}

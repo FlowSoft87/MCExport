@@ -6,8 +6,10 @@ from bpy.types import Operator
 
 from MCExport.Exporter import function
 
+
 class MinecraftCubeModelExporter(Operator, ExportHelper):
     """Export the mesh in Minecraft cube format"""
+
     bl_idname = "export_mesh.java"
     bl_label = "Export Minecraft cube model"
     
@@ -26,7 +28,8 @@ class MinecraftCubeModelExporter(Operator, ExportHelper):
     )
     
     def execute(self, context):
-        return function.writeData(context, self.filepath, self.export_animations)#, self.use_setting)
+        return function.write_data(context, self.filepath, self.export_animations)#, self.use_setting)
+
 
 # Only needed if you want to add into a dynamic menu
 def menu_func_export(self, context):

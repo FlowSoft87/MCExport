@@ -2,18 +2,18 @@ import math
 import bpy
 
 
-def get_rounded_int(number):
+def get_rounded_int(number: float) -> int:
     """
     Round up if number > 0.5 and down else.
     
     Returns:
         The number rounded to the nearest integer value.
     """
-    
+
     return int(number+0.499)
 
 
-def get_location(obj):
+def get_location(obj: bpy.types.Object) -> (float, float, float):
     """
     Convenience method to grab the location from a bpy_types.Object
     (mesh or other kind of blender objects).
@@ -25,14 +25,14 @@ def get_location(obj):
         Three floats representing x, y and z coordinate of the
         object (in this order).
     """
-    
-    lx = obj.location[0]
-    ly = obj.location[1]
-    lz = obj.location[2]
+
+    lx: float = obj.location[0]
+    ly: float = obj.location[1]
+    lz: float = obj.location[2]
     return lx, ly, lz
 
 
-def get_rotation(obj):
+def get_rotation(obj: bpy.types.Object) -> (float, float, float):
     """
     Convenience method to extract the rotation around x, y
     and z axes. Important: order matters since rotations do
@@ -44,15 +44,15 @@ def get_rotation(obj):
     Returns:
         Three floats representing the rotations around x, y and z axes.
     """
-    
-    rx = obj.rotation_euler[0]#*(180./math.pi)
-    ry = obj.rotation_euler[1]#*(180./math.pi)
-    rz = obj.rotation_euler[2]#*(180./math.pi)
-    rmode = obj.rotation_mode
-    return rx, ry, rz, rmode
+
+    rx: float = obj.rotation_euler[0]#*(180./math.pi)
+    ry: float = obj.rotation_euler[1]#*(180./math.pi)
+    rz: float = obj.rotation_euler[2]#*(180./math.pi)
+    # rmode = obj.rotation_mode
+    return rx, ry, rz
 
 
-def get_scale(obj):
+def get_scale(obj: bpy.types.Object) -> (float, float, float):
     """
     Convenience method to extract the scale of an object in x, y
     and z directions.
@@ -63,14 +63,14 @@ def get_scale(obj):
     Returns:
         Three floats representing the scale in x, y and z directions.
     """
-    
-    sx = obj.scale[0]
-    sy = obj.scale[1]
-    sz = obj.scale[2]
+
+    sx: float = obj.scale[0]
+    sy: float = obj.scale[1]
+    sz: float = obj.scale[2]
     return sx, sy, sz
 
 
-def get_dimensions(obj):
+def get_dimensions(obj: bpy.types.Object) -> (int, int, int):
     """
     Convenience method to extract the dimensions of an object in x, y
     and z directions.
@@ -83,14 +83,14 @@ def get_dimensions(obj):
     Returns:
         Three floats representing the dimensions in x, y and z directions.
     """
-    
+
     dx = int(obj.dimensions[0]+0.499)
     dy = int(obj.dimensions[1]+0.499)
     dz = int(obj.dimensions[2]+0.499)
     return dx, dy, dz
 
 
-def get_min_vertex(obj):
+def get_min_vertex(obj: bpy.types.Object) -> (float, float, float):
     """
     Method that finds the minimum vertex in a model.
     This is the one that has smallest x, y and z values.
@@ -101,12 +101,12 @@ def get_min_vertex(obj):
     Returns:
         Three floats representing the minimum vertex coordinates.
     """
-    
-    mesh = obj.data
+
+    mesh: bpy.types.Mesh = obj.data
     vertex_list = mesh.vertices
-    vx_min = None
-    vy_min = None
-    vz_min = None
+    vx_min: float = None
+    vy_min: float = None
+    vz_min: float = None
     for vert in vertex_list:
         if(vx_min == None or vert.co.x < vx_min):
             vx_min = vert.co.x
@@ -117,7 +117,7 @@ def get_min_vertex(obj):
     return vx_min, vy_min, vz_min
 
 
-def get_min_uv(obj):
+def get_min_uv(obj: bpy.types.Object) -> (float, float):
     """
     Find the minimum uv coordinates for a mesh.
     Minecraft uses this as the texture offset.
@@ -132,12 +132,12 @@ def get_min_uv(obj):
         for a given mesh or 0,0 if the mesh has no
         active texture assigned.
     """
-    
-    mesh = obj.data
+
+    mesh: bpy.types.Mesh = obj.data
     u_min = 1.
     v_max = 0.
     # Check if the active texture is not none.
-    if(mesh.uv_layers.active != None):
+    if(mesh.uv_layers.active is not None):
         for uv in mesh.uv_layers.active.data:
             if(uv.uv[0] < u_min):
                 u_min = uv.uv[0]
@@ -148,7 +148,15 @@ def get_min_uv(obj):
         return 0., 0.
 
 
-def get_texture_size(which):
+def get_active_texture() -> bpy.types.Image:
+    active_image: bpy.types.Image = None
+    for area in bpy.context.screen.areas:
+        if area.type == 'IMAGE_EDITOR':
+            active_image = area.spaces.active.image
+    return active_image
+
+
+def get_texture_size() -> (int, int):
     """
     Get the size of the texture at position <which> in pixels.
     
@@ -156,9 +164,10 @@ def get_texture_size(which):
         Two integers representing the width and height of the texture
         at position <which> or 0,0 if it does not exist.
     """
-    
-    if len(bpy.data.images) > which:
-        return bpy.data.images[which].size[0], bpy.data.images[which].size[1]
+
+    texture: bpy.types.Image = get_active_texture()
+    if texture is not None:
+        return texture.size[0], texture.size[1]
     else:
         return 0, 0
 
@@ -178,7 +187,7 @@ def get_animation_frame_range(obj_list, animation_name):
         animation. If the returned value is zero the animation
         does not exist.
     """
-    
+
     out_maxframe = 0
     for obj in obj_list:
         if obj.type == "MESH":
@@ -210,7 +219,7 @@ def get_animation_map(obj_list):
     Construct a map, mapping the names of animations to an index and their
     max frame.
     """
-    
+
     out_map = {}
     cur_index = 0
     for obj in obj_list:
@@ -288,7 +297,7 @@ def get_animation_data(obj, animation_name, max_frame):
             anims[1][10] corresponds to the 10-th frame (last index
             10) of the y-location (first index 1) of the model.
     """
-    
+
     if (obj.animation_data == None) or (len(obj.animation_data.nla_tracks < 1)):
         print("Warning: No animation tracks found in object!")
         return None
@@ -338,6 +347,61 @@ def get_animation_data(obj, animation_name, max_frame):
     return out_animation, out_type
 
 
+class_file_template = """import net.minecraft.client.model.ModelBase;
+import net.minecraft.client.model.ModelRenderer;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+
+@SideOnly(Side.CLIENT)
+class Model{modelName} extends ModelBase {{
+
+    private float partialTicks;
+
+{boxDeclarations}
+
+    public Model{modelName}() {{
+        this.textureWidth = {texWidth};
+        this.textureHeight = {texHeight};
+
+{boxInstantiations}
+    }}
+
+    @Override
+    public void setLivingAnimations(EntityLivingBase entity, float limbSwing, float limbSwingAmount,
+            float partialTicks) {{
+        this.partialTicks = partialTicks;
+    }}
+
+    @Override
+    public void render(Entity entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, 
+            float headPitch, float scale) {{
+        this.setRotationAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale, entity);
+
+{boxRenderCalls}
+    }}
+
+    public void setRotationAngles(float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw,
+            float headPitch, float scale, Entity entity) {{
+    }}
+}}
+"""
+
+box_declaration_template = """    public ModelRenderer {boxName};"""
+
+box_instantiation_template = """        this.{boxName} = new ModelRenderer(this, {texOffsetX}, {texOffsetY});
+        this.{boxName}.addBox({offsetX}, {offsetY}, {offsetZ}, {width}, {height}, {depth}, {scaleFactor});
+        this.{boxName}.setRotationPoint({rotatePointX}, {rotatePointY}, {rotatePointZ});
+        this.{boxName}.rotateAngleX = {rotateAngleX};
+        this.{boxName}.rotateAngleY = {rotateAngleY};
+        this.{boxName}.rotateAngleZ = {rotateAngleZ};
+        this.{boxName}.mirror = true;
+"""
+
+box_render_template = """        this.{boxName}.render(scale);"""
+
+
 def write_objects(file):
     """
     Write the current mesh to a '.java' file which can be used
@@ -360,76 +424,59 @@ def write_objects(file):
         file: An open stream object.
         animations: Boolean indicating if animations shall also be extracted.
     """
-    
-    tsu, tsv = get_texture_size(0)
 
-    # Package imports plus class boilerplate.
-    file.write(
-        'package net.x.package;\n\n'\
-        +'import net.minecraft.client.model.ModelBase;\n'\
-        +'import net.minecraft.client.model.ModelRenderer;\n'\
-        +'import net.minecraft.entity.Entity;\n'\
-        +'import net.minecraftforge.fml.relauncher.Side;\n'\
-        +'import net.minecraftforge.fml.relauncher.SideOnly;\n\n'\
-        +'@SideOnly(Side.CLIENT)\n'\
-        +'class ModelName extends ModelBase\n'\
-        +'{\n')
-    # Partial ticks need to be saved for later use.
-    file.write('    private float partialTicks;\n')
-    
-    for obj in bpy.data.objects:
-        if(obj.type == "MESH"):
-            file.write('    public ModelRenderer '+obj.name+';\n')
-    
-    file.write('\n'\
-            +'    public ModelName()\n'\
-            +'    {\n'\
-            +'        this.textureWidth = '+str(tsu)+';\n'\
-            +'        this.textureHeight = '+str(tsv)+';\n')
-    
+    tsu, tsv = get_texture_size()
+
+    box_declarations: str = ""
+    box_instantiations: str = ""
+    box_render_calls: str = ""
     for obj in bpy.data.objects:
         if(obj.type == "MESH"):
             lx, ly, lz = get_location(obj)
-            rx, ry, rz, rmode = get_rotation(obj)
+            rx, ry, rz = get_rotation(obj)
             sx, sy, sz = get_scale(obj)
             dx, dy, dz = get_dimensions(obj)
             vx_min, vy_min, vz_min = get_min_vertex(obj)
             u_min, v_min = get_min_uv(obj)
-            
-            #file.write('        // '+obj.name+'\n')
-            #file.write('        //  scale (MC): '+str(sx)+' '+str(sz)+' '+str(sy)+'\n')
-            #file.write('        //  dimensions (MC): '+str(dx)+' '+str(dz)+' '+str(dy)+'\n')
-            #file.write('        //  location (MC): '+str(lx)+' '+str(24-lz)+' '+str(ly)+'\n')
-            #file.write('        //  local min vertex (MC): '+str(vx_min*sx)+' '+str(-vz_min*sz)+' '+str(vy_min*sy)+'\n')
-            #file.write("        //  tex offset (MC): "+str(u_min)+' '+str(v_min)+'\n')
-            file.write(
-                    '        this.'+obj.name+' = new ModelRenderer(this,'+str(int(u_min*tsu+0.5))+','+str(int(v_min*tsv+0.5))+');\n'\
-                    +'        this.'+obj.name+'.addBox('+str.format("{0:.6f}",vx_min*sx)+'f,'+str.format("{0:.6f}",-vz_min*sz)+'f,'+str.format("{0:.6f}",vy_min*sy)+'f,'+str(dx)+','+str(dz)+','+str(dy)+',0f);\n'\
-                    +'        this.'+obj.name+'.setRotationPoint('+str.format("{0:.6f}",lx)+'f,'+str.format("{0:.6f}",24.-lz)+'f,'+str.format("{0:.6f}",ly)+'f);\n'\
-                    +'        this.'+obj.name+'.rotateAngleX = '+str.format("{0:.6f}",rx)+'f;\n'\
-                    +'        this.'+obj.name+'.rotateAngleY = '+str.format("{0:.6f}",-rz)+'f;\n'\
-                    +'        this.'+obj.name+'.rotateAngleZ = '+str.format("{0:.6f}",ry)+'f;\n'\
-#                    +'        this.'+obj.name+'.setTextureSize('+str(tsu)+','+str(tsv)+');\n'\
-                    +'        this.'+obj.name+'.mirror = true;\n')
-    
-    file.write(
-            '    }\n\n'\
-            +'    public void setLivingAnimations(EntityLivingBase p_78086_1_, float p_78086_2_, float p_78086_3_, float p_78086_4_)\n'\
-            +'    {\n'\
-            +'        this.partialTicks = p_78086_4_;\n'\
-            +'    }\n\n'\
-            +'    public void render(Entity p_78088_1_, float p_78088_2_, float p_78088_3_, float p_78088_4_, float p_78088_5_, float p_78088_6_, float p_78088_7_)\n'\
-            +'    {\n'\
-            +'        this.setRotationAngles(p_78088_2_, p_78088_3_, p_78088_4_, p_78088_5_, p_78088_6_, p_78088_7_, p_78088_1_);\n')
-    for obj in bpy.data.objects:
-        if(obj.type == "MESH"):
-            file.write('        this.'+obj.name+'.render(p_78088_7_);\n')
-    file.write(
-            '    }\n\n'\
-            +'    public void setRotationAngles(float p_78087_1_, float p_78087_2_, float p_78087_3_, float p_78087_4_, float p_78087_5_, float p_78087_6_, Entity p_78087_7_)\n'\
-            +'    {\n'\
-            +'    }\n'\
-            +'}\n')
+
+            tex_off_x = str(int(u_min * tsu + 0.5))
+            tex_off_y = str(int(v_min * tsv + 0.5))
+            offset_x = str.format("{0:.6f}", vx_min * sx) + 'f'
+            offset_y = str.format("{0:.6f}", -vz_min * sz) + 'f'
+            offset_z = str.format("{0:.6f}", ly) + 'f'
+            box_width = dx
+            box_height = dz
+            box_depth = dy
+            box_rotate_point_x = str.format("{0:.6f}", lx) + 'f'
+            box_rotate_point_y = str.format("{0:.6f}", 24.-lz) + 'f'
+            box_rotate_point_z = str.format("{0:.6f}", ly) + 'f'
+            box_rotate_angle_x = str.format("{0:.6f}", rx) + 'f'
+            box_rotate_angle_y = str.format("{0:.6f}", -rz) + 'f'
+            box_rotate_angle_z = str.format("{0:.6f}", ry) + 'f'
+
+            box_declarations += box_declaration_template.format(boxName=obj.name) + "\n"
+            box_instantiations += box_instantiation_template.format(boxName=obj.name,
+                                                                    texOffsetX=tex_off_x, texOffsetY=tex_off_y,
+                                                                    offsetX=offset_x, offsetY=offset_y,
+                                                                    offsetZ=offset_z, width=box_width,
+                                                                    height=box_height, depth=box_depth,
+                                                                    scaleFactor='0f',
+                                                                    rotatePointX=box_rotate_point_x,
+                                                                    rotatePointY=box_rotate_point_y,
+                                                                    rotatePointZ=box_rotate_point_z,
+                                                                    rotateAngleX=box_rotate_angle_x,
+                                                                    rotateAngleY=box_rotate_angle_y,
+                                                                    rotateAngleZ=box_rotate_angle_z) + "\n"
+            box_render_calls += box_render_template.format(boxName=obj.name) + "\n"
+
+    model_class: str = class_file_template.format(modelName="ModelName",
+                                                  texWidth=str(tsu),
+                                                  texHeight=str(tsv),
+                                                  boxDeclarations=box_declarations,
+                                                  boxInstantiations=box_instantiations,
+                                                  boxRenderCalls=box_render_calls)
+
+    file.write(model_class)
 
 
 def write_animrenderclass(stream, animation_name, animation_data):
@@ -465,11 +512,11 @@ def write_objects_anim(file):
         file: An open stream object.
         animations: Boolean indicating if animations shall also be extracted.
     """
-    
+
     tsu, tsv = get_texture_size(0)
     animap = get_animation_map(bpy.data.objects)
     print(animap)
-    
+
     # Package imports plus class boilerplate.
     file.write(
         'package net.x.package;\n\n'\
@@ -489,17 +536,17 @@ def write_objects_anim(file):
         +'    \n')
     # Partial ticks need to be saved for later use.
     file.write('    private float partialTicks;\n')
-    
+
     for obj in bpy.data.objects:
         if(obj.type == "MESH"):
             file.write('    public ModelRenderer '+obj.name+';\n')
-    
+
     file.write('\n'\
             +'    public ModelName()\n'\
             +'    {\n'\
             +'        this.textureWidth = '+str(tsu)+';\n'\
             +'        this.textureHeight = '+str(tsv)+';\n')
-    
+
     for obj in bpy.data.objects:
         if(obj.type == "MESH"):
             lx, ly, lz = get_location(obj)
@@ -508,7 +555,7 @@ def write_objects_anim(file):
             dx, dy, dz = get_dimensions(obj)
             vx_min, vy_min, vz_min = get_min_vertex(obj)
             u_min, v_min = get_min_uv(obj)
-            
+
             file.write(
                     '        this.'+obj.name+' = new ModelRenderer(this,'+str(int(u_min*tsu+0.5))+','+str(int(v_min*tsv+0.5))+');\n'\
                     +'        this.'+obj.name+'.addBox('+str.format("{0:.6f}",vx_min*sx)+'f,'+str.format("{0:.6f}",-vz_min*sz)+'f,'+str.format("{0:.6f}",vy_min*sy)+'f,'+str(dx)+','+str(dz)+','+str(dy)+',0f);\n'\
@@ -518,7 +565,7 @@ def write_objects_anim(file):
                     +'        this.'+obj.name+'.rotateAngleZ = '+str.format("{0:.6f}",ry)+'f;\n'\
 #                    +'        this.'+obj.name+'.setTextureSize('+str(tsu)+','+str(tsv)+');\n'\
                     +'        this.'+obj.name+'.mirror = true;\n')
-    
+
     file.write(
             '    }\n\n'\
             +'    public void setLivingAnimations(EntityLivingBase entity, float p_78086_2_, float p_78086_3_, float p_78086_4_)\n'\
@@ -549,7 +596,7 @@ def write_data(context, filepath, export_anim):
         filepath: String containing the path to the out-file.
         export_anim: Boolean specifying if animations are to be exported.
     """
-    
+
     if(bpy.context.active_object.mode != "OBJECT"):
         bpy.ops.object.mode_set(mode='OBJECT')
     out = open(filepath, "w")
@@ -558,6 +605,6 @@ def write_data(context, filepath, export_anim):
     else:
         write_objects(out)
     out.close()
-    
+
     return {'FINISHED'}
 

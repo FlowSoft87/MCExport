@@ -124,7 +124,7 @@ def create_box(width, height, depth):
     
     # apply size
     for i, v in enumerate(verts):
-        verts[i] = v[0] * width * 0.5, v[1] * depth * 0.5, v[2] * height * 0.5
+        verts[i] = v[0] * width, v[1] * depth, v[2] * height
     
     return verts, faces
 
